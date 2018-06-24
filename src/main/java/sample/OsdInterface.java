@@ -1,17 +1,10 @@
 package sample;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.util.*;
-import java.util.regex.Pattern;
-
 import entities.Case;
 import entities.Year;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
@@ -22,6 +15,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
+import java.util.regex.Pattern;
+
 
 /**
  * @author chorl_000
@@ -31,6 +32,43 @@ public class OsdInterface {
     public final Pattern p = Pattern.compile("([0-9])");
     public List<String> yearArrays = new ArrayList<>();
     public List<String> pdfArrays = new ArrayList<>();
+
+    /**
+     * Filters WhitespaceTokenizer with PorterStemFilter,StopFilter.
+     */
+    private class SavedStreams {
+
+        Tokenizer source;
+        TokenStream result;
+    }
+
+    ;
+
+    private static final String[] ENGLISH_STOP_WORDS = {
+            "a", "an", "and", "are", "as", "at", "be", "but", "by",
+            "for", "if", "in", "into", "is", "it", "no", "not", "of",
+            "on", "or", "such", "that", "the", "their", "then", "there", "these",
+            "they", "this", "to", "was", "will", "with",
+            "@author", "@param", "@return", "@deprecated", "@see", "@serial", "@since", "@serial",
+            "@throws", "@code", "@link", "<i>", "</i>", "<pre>", "</pre>", "<blockquote>", "</blockquote>",
+            "<br>", "</br>", "<b>", "</b>", "<tt>", "</tt>", "@linkplain", "<p>", "<a href=", "</a>",
+            "public", "void", "private", "protected", "final", "asbtract", "class", "sttatic", "return"};
+
+    private Set<String> getStopWordsList() {
+
+        Set<String> list = new HashSet<String>();
+
+        for (int i = 0; i < ENGLISH_STOP_WORDS.length; i++) {
+            String string = ENGLISH_STOP_WORDS[i];
+            list.add(string);
+        }
+
+        return list;
+
+    }
+
+    Set<String> stopwords = getStopWordsList();
+
 
     public Map<Integer, Year> getYears() throws IOException {
         Map<Integer, Year> yearMap = new TreeMap<>();
@@ -93,7 +131,7 @@ public class OsdInterface {
 
         System.out.println(desc.title());
         System.out.println("Search for case " + _case.getFileName());
-        Elements caseData = desc.select("a[href*="+_case.getFileName()+"]");
+        Elements caseData = desc.select("a[href*=" + _case.getFileName() + "]");
         for (Element link : caseData) {
             return link.parent().parent().toString();
         }
@@ -125,7 +163,7 @@ public class OsdInterface {
         fileOutput.close();
     }
 
-    public void parsePdf(String pdf, Map<String, Boolean> searchTerms) throws IOException {
+    public void parsePdf(String pdf) throws IOException {
         PDDocument document = PDDocument.load(new File(ClearSecDefines.DOWNLOAD_DIR + "\\" + pdf));
         boolean found = true;
         try {
@@ -143,30 +181,13 @@ public class OsdInterface {
                 // split by whitespace
                 String lines[] = pdfFileInText.split("\\r?\\n");
                 for (String line : lines) {
-                    for (Map.Entry<String, Boolean> entry : searchTerms.entrySet()) {
-                        if (StringUtils.containsIgnoreCase(line, entry.getKey())) {
-                            entry.setValue(true);
-                        }
-                    }
+                    System.out.println(line);
                 }
 
-                for (Map.Entry<String, Boolean> entry : searchTerms.entrySet()) {
-                    found = found && entry.getValue();
-                }
 
-                if (found) {
-                    System.out.println("Found terms in " + pdf);
-                }
             }
         } catch (Exception ex) {
-        } finally {
-            if (document != null) {
-                document.close();
-            }
-
-            for (Map.Entry<String, Boolean> entry : searchTerms.entrySet()) {
-                entry.setValue(false);
-            }
+            ex.printStackTrace();
         }
     }
 }

@@ -2,11 +2,8 @@ package Tasks;
 
 import entities.Case;
 import entities.Year;
-import javafx.concurrent.Task;
 import sample.OsdInterface;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 

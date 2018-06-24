@@ -15,7 +15,7 @@ import java.net.URL;
 public class Main extends Application {
 
     @Override
-    public void start(Stage primaryStage) throws Exception{
+    public void start(Stage primaryStage) throws Exception {
         URL url = new File("src\\main\\resources\\clearsec.fxml").toURL();
         Parent root = FXMLLoader.load(url);
         primaryStage.setTitle("Lexical Background Check");

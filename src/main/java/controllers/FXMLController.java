@@ -1,39 +1,34 @@
 package controllers;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
 import Tasks.GetListOfPdfsTask;
 import Tasks.GetListOfYearsTask;
-import com.sun.jndi.toolkit.url.UrlUtil;
 import entities.Case;
 import entities.Year;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
-import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.web.WebView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.apache.commons.io.FilenameUtils;
 import sample.OsdInterface;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.ResourceBundle;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class FXMLController implements Initializable {
 
@@ -84,7 +79,7 @@ public class FXMLController implements Initializable {
                 if (!cell.isEmpty()) {
                     TreeItem<String> treeItem = cell.getTreeItem();
                     try {
-                        if(treeItem.getValue().contains("pdf")) {
+                        if (treeItem.getValue().contains("pdf")) {
                             loadPdf(treeItem);
                         } else {
                             loadPdfs(treeItem);
@@ -124,7 +119,7 @@ public class FXMLController implements Initializable {
     }
 
     @FXML
-    private void onMenuFileClose () {
+    private void onMenuFileClose() {
         Platform.exit();
         System.exit(0);
     }
@@ -141,7 +136,7 @@ public class FXMLController implements Initializable {
     }
 
     public void loadPdfs(TreeItem item) throws ExecutionException, InterruptedException {
-        if(item.getChildren().size() > 0 ) {
+        if (item.getChildren().size() > 0) {
             return;
         }
         Year year = yearOsdItems.get(Integer.valueOf((String) item.getValue()));
@@ -150,7 +145,7 @@ public class FXMLController implements Initializable {
         GetListOfPdfsTask task = new GetListOfPdfsTask(year);
         Future<Map<String, Case>> future = service.submit(task);
         Map<String, Case> cases = future.get();
-        for (Map.Entry<String, Case> entry  : cases.entrySet()) {
+        for (Map.Entry<String, Case> entry : cases.entrySet()) {
             treeItem.getChildren().add(new TreeItem(entry.getKey()));
             treeCase.put(entry.getKey(), entry.getValue());
         }
@@ -168,7 +163,8 @@ public class FXMLController implements Initializable {
         });
 
         Case _case = (Case) treeCase.get(item.getValue());
-        osdInterface.getPdf(_case.getUrl()aasdf);
+        osdInterface.getPdf(_case.getUrl());
+        osdInterface.parsePdf(_case.getFileName());
     }
 
 }

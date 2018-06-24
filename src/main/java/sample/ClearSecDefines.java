@@ -1,10 +1,7 @@
 package sample;
 
 
-import java.util.regex.Pattern;
-
 /**
- *
  * @author chorl_000
  */
 public class ClearSecDefines {
