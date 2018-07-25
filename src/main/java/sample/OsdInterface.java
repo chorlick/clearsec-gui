@@ -3,22 +3,28 @@ package sample;
 import entities.Case;
 import entities.Year;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.analysis.tokenattributes.OffsetAttribute;
+import org.apache.lucene.util.Version;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.PDFTextStripperByArea;
 import org.apache.solr.util.FileUtils;
-import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -95,7 +101,7 @@ public class OsdInterface {
     }
 
     public Map<String, Case> getPdfsForPage(Year year) throws IOException {
-        Map<String, Case> pdfMap = new HashMap<>();
+        Map<String, Case> pdfMap = new TreeMap();
         Document pdfs = Jsoup.connect(year.getUrl())
                 .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
                 .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
@@ -140,27 +146,30 @@ public class OsdInterface {
 
     public void getPdf(String pdf) throws FileNotFoundException, IOException {
         URL url = new URL(pdf);
-        if (FileUtils.fileExists(ClearSecDefines.DOWNLOAD_DIR + "\\" + FilenameUtils.getName(url.getPath()))) {
+        String outfile = ClearSecDefines.DOWNLOAD_DIR + "\\" + FilenameUtils.getName(url.getPath());
+        if (FileUtils.fileExists(outfile)) {
             return;
         }
         System.out.printf("Getting file %s\n", pdf);
-        Connection.Response pdfFile = Jsoup.connect(pdf)
-                .userAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36")
-                .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8")
-                .header("Accept-Encoding", "gzip, deflate")
-                .header("Accept-Language", "en-US,en;q=0.9")
-                .header("Host", "ogc.osd.mil")
-                .header("Connection", "keep-alive")
-                .header("Upgrade-Insecure-Requests", "1")
-                .ignoreContentType(true)
-                .method(Connection.Method.GET).execute();
-
-        int length = pdfFile.bodyAsBytes().length;
-        byte[] byteArray = new byte[1024];
-        FileOutputStream fileOutput = new FileOutputStream(ClearSecDefines.DOWNLOAD_DIR + "\\" + FilenameUtils.getName(pdfFile.url().getPath()));
-        fileOutput.write(pdfFile.bodyAsBytes(), 0, length);
-        fileOutput.flush();
-        fileOutput.close();
+        HttpGet get = new HttpGet(pdf);
+        CloseableHttpClient connection = HttpClientBuilder.create().build();
+        HttpResponse response = connection.execute(get);
+        for(int i = 0; i < response.getAllHeaders().length; i++){
+            System.out.println(response.getAllHeaders()[i].getName() + " " + response.getAllHeaders()[i].getValue());
+        }
+        System.out.println("Writing to " + outfile);
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            try (FileOutputStream outstream = new FileOutputStream(outfile)) {
+                entity.writeTo(outstream);
+            }
+        }
+        ((CloseableHttpResponse) response).close();
+        connection.close();
+        get.releaseConnection();
+        System.out.println("Response code : " + response.getStatusLine().getStatusCode());
+        System.out.println("Response line : " + response.getStatusLine().getReasonPhrase());
+        System.out.println("Length        : " + response.getFirstHeader("Content-Length").getValue());
     }
 
     public void parsePdf(String pdf) throws IOException {
@@ -176,15 +185,20 @@ public class OsdInterface {
                 PDFTextStripper tStripper = new PDFTextStripper();
 
                 String pdfFileInText = tStripper.getText(document);
-                //System.out.println("Text:" + st);
+
+                Version matchVersion = Version.LUCENE_7_3_1; // Substitute desired Lucene version for XY
+                Analyzer analyzer = new StandardAnalyzer(); // or any other analyzer
+                TokenStream ts = analyzer.tokenStream("myfield", new StringReader("some text goes here"));
+                // The Analyzer class will construct the Tokenizer, TokenFilter(s), and CharFilter(s),
+                //   and pass the resulting Reader to the Tokenizer.
+                OffsetAttribute offsetAtt = ts.addAttribute(OffsetAttribute.class);
+
 
                 // split by whitespace
                 String lines[] = pdfFileInText.split("\\r?\\n");
                 for (String line : lines) {
                     System.out.println(line);
                 }
-
-
             }
         } catch (Exception ex) {
             ex.printStackTrace();
