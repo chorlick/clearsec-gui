@@ -120,5 +120,7 @@
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.7.5" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-simple:1.6.4" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.projectlombok:lombok:1.18.0" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: com.h2database:h2:1.0.60" level="project" />
+    <orderEntry type="library" name="Maven: org.flywaydb:flyway-core:3.0" level="project" />
   </component>
 </module>
